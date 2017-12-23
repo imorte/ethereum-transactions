@@ -8,11 +8,6 @@ import (
 	"fmt"
 )
 
-const (
-	DBUSER     = "postgres"
-	DBPASSWORD = "1111"
-	DBNAME     = "etherium"
-)
 
 func main() {
 	dbInfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
@@ -23,6 +18,9 @@ func main() {
 	defer db.Close()
 
 	fmt.Println("Established connection with db...")
+
+
+	ListenTcp()
 
 
 }
