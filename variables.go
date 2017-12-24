@@ -3,7 +3,7 @@ package main
 const (
 	DBUSER     = "postgres"
 	DBPASSWORD = "1111"
-	DBNAME     = "etherium"
+	DBNAME     = "ethereum"
 
 	APIHOST = "localhost"
 	APIPORT = "3333"

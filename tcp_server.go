@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"strings"
+	"strconv"
 )
 
 func ListenTcp() {
@@ -24,7 +25,7 @@ func ListenTcp() {
 	if err != nil {
 		log.Fatalf("Can't listen: %s", err)
 	}
-	log.Print("Listening")
+	fmt.Println("Listening")
 
 	for {
 		conn, err := listener.Accept()
@@ -33,10 +34,10 @@ func ListenTcp() {
 			break
 		}
 		defer conn.Close()
-		log.Printf("Accepted bytes from %s", conn.RemoteAddr())
+		fmt.Printf("Accepted bytes from %s\n", conn.RemoteAddr())
 		tlsConnection, ok := conn.(*tls.Conn)
 		if ok {
-			log.Print("Connection established")
+			fmt.Println("Connection established")
 			state := tlsConnection.ConnectionState()
 
 			// TODO: Del this
@@ -58,21 +59,42 @@ func handleClient(conn net.Conn) {
 			break
 		}
 
-		requestString := strings.Fields(string(buf[:n]))
+		data := strings.Fields(string(buf[:n]))
 
-		action, _, _, _ := requestString[0], requestString[1], requestString[2], requestString[3]
+		validatedResult, status := validateData(data[1], data[2], data[3])
+
+		if !status {
+			conn.Write([]byte("Please, check your data: " + strings.Join(validatedResult, "; ") ))
+			conn.Close()
+		}
+
+		action := data[0]
+		password := data[len(data)-1]
 
 		switch action {
-		case "send": {
-			fmt.Println("Отправляю запрос на перевод в ноду")
+		case "send":
+			hexAmount, err := strconv.Atoi(data[3])
+			checkErr(err)
 
-			// TODO: Нормальный ответ
-			res := []byte(fmt.Sprintf("Got your request: %s", action))
+			result, status := SendEth(data[1], data[2], fmt.Sprintf("0x%X", hexAmount), password)
 
-			GetBalance()
-			conn.Write(res)
-		}
+			if status {
+				res := []byte(fmt.Sprintf("Success: %s", action))
+				conn.Write(res)
+
+				message, isStored := Store(data[1], data[2], result, hexAmount)
+
+				fmt.Println(message)
+				if !isStored {
+					conn.Write([]byte(""))
+					conn.Close()
+				}
+			} else {
+				conn.Write([]byte("Transaction error: " + result))
+				conn.Close()
+			}
+		default:
+			conn.Write([]byte("Undefined action: " + action))
 		}
 	}
 }
-

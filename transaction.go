@@ -1,27 +1,20 @@
 package main
 
 import (
+	"github.com/ybbus/jsonrpc"
 	"fmt"
-	"encoding/json"
 )
 
-func SendEth() {
+func SendEth(from string, to string, amount string, password string) (string, bool) {
+	rpcClient := jsonrpc.NewRPCClient(fmt.Sprintf("http://%s:%s", RPCHOST, RPCPORT))
 
-}
+	response, _ := rpcClient.Call("personal_sendTransaction", Transaction{from, to, amount}, password)
 
-func GetBalance() {
-	marshaledResult, err := json.Marshal(Balance{
-		Jsonrpc: "2.0",
-		Method: "eth_getBalance",
-		Params: BalanceParams{
-			Data: "0x532bce52569bd8181fc1cadeeb18c2ae4e58cf0c",
-			Quantity: "latest",
-		},
-		Id: 1,
-	})
-	checkErr(err)
+	transaction := response.Result.(string)
 
-	fmt.Println(marshaledResult)
-
-	fmt.Println("balance is ")
+	if response.Error != nil {
+		return fmt.Sprintf("An error occurred: %s", response.Error), false
+	} else {
+		return transaction, true
+	}
 }
