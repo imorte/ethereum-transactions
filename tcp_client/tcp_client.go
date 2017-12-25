@@ -11,12 +11,6 @@ import (
 
 func main() {
 	args := os.Args
-	lenArgs := len(args)
-
-	if lenArgs != 6 {
-		fmt.Print("Usage:\nsend <from> <to> <amount> <password>\nget-last\n")
-		os.Exit(1)
-	}
 
 	SendData(strings.Join(args[1:], " "))
 }
