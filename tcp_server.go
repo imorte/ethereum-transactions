@@ -9,6 +9,7 @@ import (
 	"strings"
 	"strconv"
 	"encoding/json"
+	"bytes"
 )
 
 func ListenTcp() {
@@ -38,7 +39,6 @@ func ListenTcp() {
 		fmt.Printf("Accepted bytes from %s\n", conn.RemoteAddr())
 		tlsConnection, ok := conn.(*tls.Conn)
 		if ok {
-			fmt.Println("Connection established")
 			state := tlsConnection.ConnectionState()
 
 			// TODO: Del this
@@ -54,7 +54,6 @@ func handleClient(conn net.Conn) {
 	defer conn.Close()
 	buf := make([]byte, 1024)
 	for {
-		fmt.Println("Waiting")
 		n, err := conn.Read(buf)
 		if err != nil {
 			break
@@ -89,6 +88,7 @@ func handleClient(conn net.Conn) {
 
 					fmt.Println(message)
 					if !isStored {
+						// TODO
 						conn.Write([]byte(""))
 						conn.Close()
 					}
@@ -98,7 +98,7 @@ func handleClient(conn net.Conn) {
 				}
 			case "get-last":
 				var lastTransactions []LastTransactions
-				var marshaledTransactions [][]byte
+				var stringBuffer bytes.Buffer
 				c := make(chan bool)
 
 				go func() {
@@ -106,16 +106,26 @@ func handleClient(conn net.Conn) {
 				}()
 				<-c
 
-				for _, v := range lastTransactions {
+				for i, v := range lastTransactions {
 					marshaledTransaction, err := json.Marshal(v)
 					checkErr(err)
-					marshaledTransactions = append(marshaledTransactions, marshaledTransaction)
+
+					for _, j := range marshaledTransaction {
+						stringBuffer.WriteByte(j)
+					}
+
+					if i != len(lastTransactions)-1 {
+						// Comma
+						stringBuffer.WriteByte(44)
+					}
 				}
 
-				// TODO: Send to the client + increment
-				for _, v := range marshaledTransactions {
-					fmt.Println(string(v))
+				if len(stringBuffer.String()) != 0 {
+					fmt.Println(fmt.Sprintf("[%s]", stringBuffer.String()))
+				} else {
+					conn.Write([]byte("I have no recent transactions"))
 				}
+				conn.Close()
 			default:
 				conn.Write([]byte("Undefined action: " + action))
 			}

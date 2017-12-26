@@ -12,10 +12,12 @@ type Transaction struct {
 }
 
 type LastTransactions struct {
-	Date       JsonNullString `json:"date"`
-	Recipient  string         `json:"recipient"`
-	Amount     int            `json:"amount"`
-	ShownCount JsonNullInt64  `json:"shown_count"`
+	Date            JsonNullString `json:"date"`
+	Recipient       string         `json:"recipient"`
+	Amount          int            `json:"amount"`
+	Shown           bool           `json:"-"`
+	ShownCount      JsonNullInt64  `json:"shown_count"`
+	TransactionHash string         `json:"-"`
 }
 
 type JsonNullString struct {

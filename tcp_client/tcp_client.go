@@ -38,8 +38,8 @@ func SendData(query string) {
 		log.Fatalf("client: write: %s", err)
 	}
 
-	reply := make([]byte, 256)
+	reply := make([]byte, 1024)
 	n, err = conn.Read(reply)
-	fmt.Printf("%q (%d bytes)\n", string(reply[:n]), n)
+	fmt.Printf("%s (%d bytes)\n", string(reply[:n]), n)
 	fmt.Print("Exit\n")
 }
