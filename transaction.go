@@ -10,11 +10,10 @@ func SendEth(from string, to string, amount string, password string) (string, bo
 
 	response, _ := rpcClient.Call("personal_sendTransaction", Transaction{from, to, amount}, password)
 
-	transaction := response.Result.(string)
-
 	if response.Error != nil {
 		return fmt.Sprintf("An error occurred: %s", response.Error), false
 	} else {
+		transaction := response.Result.(string)
 		return transaction, true
 	}
 }

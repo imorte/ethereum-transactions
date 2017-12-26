@@ -5,7 +5,6 @@ import (
 	"strconv"
 	_ "github.com/lib/pq"
 	"fmt"
-	"time"
 	"github.com/ybbus/jsonrpc"
 )
 
@@ -56,7 +55,6 @@ func CatchDeliveryTime(transactionHash string) {
 			checkErr(err)
 			return
 		}
-		time.Sleep(time.Millisecond * 50)
 	}
 }
 
@@ -80,24 +78,20 @@ func GetLast(c chan bool) (lastTransactions []LastTransactions) {
 
 	bHeight, err := strconv.ParseUint(responseHeight.Result.(string)[2:], 16, 32)
 	checkErr(err)
-	rows, err := db.Query("SELECT date, recipient, amount, shown, shown_count, transaction_hash FROM transactions WHERE date NOTNULL")
+	rows, err := db.Query("SELECT date, recipient, amount, shown, transaction_hash FROM transactions WHERE shown = FALSE and date NOTNULL")
 	checkErr(err)
 
 	for rows.Next() {
 		var t LastTransactions
-		err := rows.Scan(&t.Date, &t.Recipient, &t.Amount, &t.Shown, &t.ShownCount, &t.TransactionHash)
+		err := rows.Scan(&t.Date, &t.Recipient, &t.Amount, &t.Shown, &t.TransactionHash)
 		checkErr(err)
 		transactionBlock := GetTransactionBlockByHash(t.TransactionHash)
 
 		numOfConfirmations := bHeight - transactionBlock + 1
 
-		t.ShownCount.Int64 += 1
-		count := t.ShownCount.Int64
-		IncrementShownCount(t.TransactionHash, count)
-
 		if t.Shown == false || numOfConfirmations < 3 {
 			lastTransactions = append(lastTransactions, t)
-			if !t.ShownCount.Valid {
+			if !t.Shown {
 				MarkAsShown(t.TransactionHash)
 			}
 		} else {
@@ -108,13 +102,6 @@ func GetLast(c chan bool) (lastTransactions []LastTransactions) {
 	c <- true
 
 	return
-}
-
-func IncrementShownCount(transactionHash string, count int64) {
-	stmt, err := db.Prepare("UPDATE transactions SET shown_count = $1 where transaction_hash=$2")
-	checkErr(err)
-	_, err = stmt.Exec(count, transactionHash)
-	checkErr(err)
 }
 
 func MarkAsShown(transactionHash string) {

@@ -33,12 +33,18 @@ func SendData(query string) {
 
 	message := query
 
+	_, err = io.WriteString(conn, message)
+	if err != nil {
+		log.Fatalf("client: write: %s", err)
+	}
+
 	n, err := io.WriteString(conn, message)
 	if err != nil {
 		log.Fatalf("client: write: %s", err)
 	}
 
-	reply := make([]byte, 1024)
+	// For example
+	reply := make([]byte, 4096)
 	n, err = conn.Read(reply)
 	fmt.Printf("%s (%d bytes)\n", string(reply[:n]), n)
 	fmt.Print("Exit\n")

@@ -16,7 +16,6 @@ type LastTransactions struct {
 	Recipient       string         `json:"recipient"`
 	Amount          int            `json:"amount"`
 	Shown           bool           `json:"-"`
-	ShownCount      JsonNullInt64  `json:"shown_count"`
 	TransactionHash string         `json:"-"`
 }
 
