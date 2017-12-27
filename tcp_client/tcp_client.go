@@ -33,11 +33,6 @@ func SendData(query string) {
 
 	message := query
 
-	_, err = io.WriteString(conn, message)
-	if err != nil {
-		log.Fatalf("client: write: %s", err)
-	}
-
 	n, err := io.WriteString(conn, message)
 	if err != nil {
 		log.Fatalf("client: write: %s", err)

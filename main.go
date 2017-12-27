@@ -21,5 +21,8 @@ func main() {
 
 	fmt.Println("Established connection with db...")
 
+	// Checks unfinished transaction once
+	go CheckTransactions()
+
 	ListenTcp()
 }

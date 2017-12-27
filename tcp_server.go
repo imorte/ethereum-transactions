@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"log"
 	"net"
-	"crypto/x509"
 	"fmt"
 	"strings"
 )
@@ -34,15 +33,12 @@ func ListenTcp() {
 		}
 		defer conn.Close()
 		fmt.Printf("Accepted bytes from %s\n", conn.RemoteAddr())
-		tlsConnection, ok := conn.(*tls.Conn)
+		_, ok := conn.(*tls.Conn)
 		if ok {
-			state := tlsConnection.ConnectionState()
+			fmt.Println("Connection is secured")
 
-			// TODO: Del this
-			for _, v := range state.PeerCertificates {
-				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
-			}
 		}
+
 		go handleClient(conn)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	_ "github.com/lib/pq"
 	"fmt"
 	"github.com/ybbus/jsonrpc"
+	"time"
 )
 
 func checkErr(err error) {
@@ -53,8 +54,16 @@ func CatchDeliveryTime(transactionHash string) {
 			checkErr(err)
 			_, err = res.RowsAffected()
 			checkErr(err)
+
+			if to := response.Result.(map[string]interface{})["to"]; to != nil {
+				MakeBalanceRecord(transactionHash, to.(string))
+			}
+
 			return
 		}
+
+		// Just delay, goroutine
+		time.Sleep(time.Millisecond * 200)
 	}
 }
 
@@ -78,20 +87,20 @@ func GetLast(c chan bool) (lastTransactions []LastTransactions) {
 
 	bHeight, err := strconv.ParseUint(responseHeight.Result.(string)[2:], 16, 32)
 	checkErr(err)
-	rows, err := db.Query("SELECT date, recipient, amount, shown, transaction_hash FROM transactions WHERE shown = FALSE and date NOTNULL")
+	rows, err := db.Query("SELECT date, recipient, amount, show, transaction_hash FROM transactions WHERE show = FALSE and date NOTNULL")
 	checkErr(err)
 
 	for rows.Next() {
 		var t LastTransactions
-		err := rows.Scan(&t.Date, &t.Recipient, &t.Amount, &t.Shown, &t.TransactionHash)
-		checkErr(err)
+		err := rows.Scan(&t.Date, &t.Recipient, &t.Amount, &t.Show, &t.TransactionHash)
 		transactionBlock := GetTransactionBlockByHash(t.TransactionHash)
-
 		numOfConfirmations := bHeight - transactionBlock + 1
+		checkErr(err)
+		t.Confirmations = numOfConfirmations
 
-		if t.Shown == false || numOfConfirmations < 3 {
+		if t.Show == false || numOfConfirmations < 3 {
 			lastTransactions = append(lastTransactions, t)
-			if !t.Shown {
+			if !t.Show && numOfConfirmations >= 3 {
 				MarkAsShown(t.TransactionHash)
 			}
 		} else {
@@ -105,7 +114,7 @@ func GetLast(c chan bool) (lastTransactions []LastTransactions) {
 }
 
 func MarkAsShown(transactionHash string) {
-	stmt, err := db.Prepare("UPDATE transactions SET shown = TRUE where transaction_hash=$1")
+	stmt, err := db.Prepare("UPDATE transactions SET show = TRUE where transaction_hash=$1")
 	checkErr(err)
 	_, err = stmt.Exec(transactionHash)
 	checkErr(err)
@@ -121,4 +130,29 @@ func GetTransactionBlockByHash(transactionHash string) (uint64) {
 	}
 
 	return 0
+}
+
+func CheckTransactions() {
+	rows, err := db.Query("SELECT transaction_hash FROM transactions WHERE completed = FALSE")
+	checkErr(err)
+	for rows.Next() {
+		var transactionHash string
+		err = rows.Scan(&transactionHash)
+		checkErr(err)
+
+		CatchDeliveryTime(transactionHash)
+	}
+
+	return
+}
+
+func MakeBalanceRecord(transactionHash string, recipient string) {
+	rpcClient := jsonrpc.NewRPCClient(fmt.Sprintf("http://%s:%s", RPCHOST, RPCPORT))
+	response, _ := rpcClient.Call("eth_getBalance", recipient, "latest")
+	balance := response.Result.(string)
+
+	stmt, err := db.Prepare("INSERT INTO balance(wallet, balance) VALUES($1, $2)")
+	checkErr(err)
+	_, err = stmt.Exec(transactionHash, string(balance))
+	checkErr(err)
 }

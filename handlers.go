@@ -9,10 +9,12 @@ import (
 )
 
 func SendHandler(action string, data []string, conn net.Conn) {
+	defer conn.Close()
 	validatedResult, status := validateData(data[1], data[2], data[3])
 	if !status {
 		conn.Write([]byte("Please, check your data: " + strings.Join(validatedResult, "; ") ))
 		conn.Close()
+		return
 	}
 
 	password := data[len(data)-1]
@@ -32,11 +34,9 @@ func SendHandler(action string, data []string, conn net.Conn) {
 
 		if !isStored {
 			conn.Write(res)
-			conn.Close()
 		}
 	} else {
 		conn.Write([]byte("Transaction error: " + result))
-		conn.Close()
 	}
 }
 
