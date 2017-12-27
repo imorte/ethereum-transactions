@@ -15,6 +15,7 @@ func checkErr(err error) {
 	}
 }
 
+// Validates request from the TCP client
 func validateData(from, to, amount string) (result []string, status bool) {
 	var hexRegex = regexp.MustCompile("0[xX][0-9a-fA-F]+")
 	status = false
